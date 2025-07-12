@@ -317,7 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch('/.netlify/functions/create-stripe-payment-session', { 
                 method: 'POST',
                 // ✅ MUDANÇA 2: O corpo da requisição agora envia os itens e o raffleId.
-                body: JSON.stringify({ items, raffleId }) 
+               body: JSON.stringify({ items, raffleId, payerData })
             });
     
             if (!res.ok) {
