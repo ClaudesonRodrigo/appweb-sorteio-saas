@@ -1,9 +1,20 @@
-// public/script.js (Atualizado para exibir a barra de progresso)
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+// public/script.js
 import { app } from './firebase-init.js';
+
+// 2. Importa as ferramentas do Firestore que esta página usa
+import { 
+    getFirestore, 
+    collection, 
+    query, 
+    where, 
+    onSnapshot 
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+
+// 3. Importa as ferramentas de Autenticação que esta página usa
+import { 
+    getAuth, 
+    signInAnonymously 
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 
 const db = getFirestore(app);
 const auth = getAuth(app);
