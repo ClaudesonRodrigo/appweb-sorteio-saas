@@ -1,4 +1,4 @@
-// public/admin.js - Bloco de importação CORRETO e COMPLETO
+// public/admin.js - Versão Completa e Corrigida
 
 // 1. Importa nosso 'app' já inicializado do arquivo central
 import { app } from './firebase-init.js'; 
@@ -25,10 +25,6 @@ import {
     signOut 
 } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 
-
-// O resto do seu código continua normalmente a partir daqui...
-document.addEventListener('DOMContentLoaded', () => {
-//...
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -98,7 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const saveRaffleNameBtn = document.getElementById('save-raffle-name-btn');
         const cancelEditRaffleNameBtn = document.getElementById('cancel-edit-raffle-name-btn');
         
-        // ✅ CORREÇÃO APLICADA AQUI
         const rulesTextArea = document.getElementById('rules-text-area'); 
         const saveRulesBtn = document.getElementById('save-rules-btn');
 
@@ -184,7 +179,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (e) { console.error("Erro ao declarar ganhador:", e); }
         };
         
-        // ✅ LÓGICA CORRIGIDA E COMPLETA PARA AS REGRAS
         const loadRules = async () => {
             try {
                 const docSnap = await getDoc(settingsDocRef);
@@ -350,7 +344,6 @@ document.addEventListener('DOMContentLoaded', () => {
         saveRaffleNameBtn.addEventListener('click', saveRaffleName);
         cancelEditRaffleNameBtn.addEventListener('click', hideEditRaffleNameUI);
         
-        // ✅ EVENT LISTENER CORRIGIDO E ATIVADO
         saveRulesBtn.addEventListener('click', saveRules);
         
         rafflesListEl.addEventListener('click', (e) => {
@@ -365,7 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         listenToAllRaffles();
-        loadRules(); // Carrega as regras quando o painel é inicializado
+        loadRules(); 
     }
     
     onAuthStateChanged(auth, (user) => {
@@ -512,3 +505,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+// 1. Importa nosso 'app' já inicializado do arquivo central
+import { app } from './firebase-init.js'; 
+
+// 2. Importa TODAS as ferramentas do Firestore que este arquivo usa
+import { 
+    getFirestore, 
+    collection, 
+    getDocs, 
+    doc, 
+    onSnapshot, 
+    addDoc, 
+    updateDoc, 
+    deleteDoc, 
+    setDoc, 
+    getDoc 
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+
+// 3. Importa TODAS as ferramentas de Autenticação que este arquivo usa
+import { 
+    getAuth, 
+    onAuthStateChanged, 
+    signInWithEmailAndPassword, 
+    signOut 
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
