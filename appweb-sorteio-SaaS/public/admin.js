@@ -1,4 +1,4 @@
-// public/admin.js - Versão Completa e Corrigida
+// public/admin.js - Versão Final e Corrigida
 
 // 1. Importa nosso 'app' já inicializado do arquivo central
 import { app } from './firebase-init.js'; 
