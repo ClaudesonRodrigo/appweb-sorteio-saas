@@ -292,52 +292,55 @@ document.addEventListener('DOMContentLoaded', () => {
         if (shoppingCartSection) shoppingCartSection.classList.add('hidden');
     }
 
+   // Substitua a sua função handleCheckout antiga por esta nova versão para a Stripe
+
     async function handleCheckout() {
         if (isTestMode) return handleTestCheckout();
         if (selectedNumbers.length === 0) return;
-
+    
         checkoutBtn.disabled = true;
-        checkoutBtn.textContent = 'A gerar link...';
-        paymentStatusEl.textContent = 'Aguarde...';
+        checkoutBtn.textContent = 'Gerando link seguro...';
+        paymentStatusEl.textContent = 'Aguarde, conectando com nosso sistema de pagamento...';
         paymentStatusEl.classList.remove('hidden');
         
+        // A criação dos itens continua a mesma, pois a nossa função no backend
+        // já sabe como lidar com este formato.
         const items = selectedNumbers.map(n => ({ 
             id: formatNumberForRaffleType(parseInt(n), raffleType), 
-            title: `Rifa - ${raffleDetails.name} - Nº ${formatNumberForRaffleType(parseInt(n), raffleType)}`, 
+            title: `Sorteio Sergipano - ${raffleDetails.name} - Nº ${n}`, 
             quantity: 1, 
-            unit_price: pricePerNumber, 
-            currency_id: 'BRL' 
+            unit_price: pricePerNumber
         }));
         
-        const payerData = { ...currentUser, userId, raffleId: raffleId };
-        
-        const urlParams = new URLSearchParams(window.location.search);
-        const vendorId = urlParams.get('vendor') || null;
-        if (vendorId) {
-            payerData.vendorId = vendorId;
-        }
-
         try {
-            const res = await fetch('/.netlify/functions/create-payment', { 
-                method: 'POST', 
-                body: JSON.stringify({ items, payerData }) 
+            // ✅ MUDANÇA 1: A URL agora aponta para a nossa nova função da Stripe.
+            const res = await fetch('/.netlify/functions/create-stripe-payment-session', { 
+                method: 'POST',
+                // ✅ MUDANÇA 2: O corpo da requisição agora envia os itens e o raffleId.
+                body: JSON.stringify({ items, raffleId }) 
             });
-
+    
             if (!res.ok) {
                 const err = await res.json();
                 throw new Error(err.error || 'Falha ao gerar link de pagamento.');
             }
-
+    
             const data = await res.json();
+            
+            // ✅ MUDANÇA 3: A lógica de redirecionamento continua a mesma!
+            // A Stripe também nos devolve uma URL de checkout.
             if (data.checkoutUrl) {
+                // Ainda salvamos os números pendentes para a mensagem de sucesso
                 localStorage.setItem('pendingRaffleId', raffleId);
-                localStorage.setItem('pendingNumbers', JSON.stringify(selectedNumbers.map(n => formatNumberForRaffleType(parseInt(n), raffleType))));
+                localStorage.setItem('pendingNumbers', JSON.stringify(selectedNumbers));
+                
+                // Redireciona o cliente para a página de pagamento da Stripe
                 window.location.href = data.checkoutUrl;
             }
         } catch (e) {
-            paymentStatusEl.textContent = `Erro ao gerar link: ${e.message}`;
+            paymentStatusEl.textContent = `Erro: ${e.message}`;
             checkoutBtn.disabled = false;
-            checkoutBtn.textContent = 'Pagar com Mercado Pago';
+            checkoutBtn.textContent = 'Tentar Novamente';
         }
     }
 
