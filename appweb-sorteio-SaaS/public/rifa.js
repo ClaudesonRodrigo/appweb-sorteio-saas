@@ -1,9 +1,22 @@
-// public/rifa.js (Versão final, corrigida em 11/07/2025)
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, onSnapshot, getDoc, setDoc, collection, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+// public/rifa.js 
 import { app } from './firebase-init.js';
+
+// 2. Importa TODAS as ferramentas do Firestore que esta página usa
+import { 
+    getFirestore, 
+    doc, 
+    onSnapshot, 
+    getDoc, 
+    collection, 
+    writeBatch 
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+
+// 3. Importa TODAS as ferramentas de Autenticação que esta página usa
+import { 
+    getAuth, 
+    signInAnonymously, 
+    onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 
 document.addEventListener('DOMContentLoaded', () => {
 
