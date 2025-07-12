@@ -505,27 +505,3 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
-// 1. Importa nosso 'app' já inicializado do arquivo central
-import { app } from './firebase-init.js'; 
-
-// 2. Importa TODAS as ferramentas do Firestore que este arquivo usa
-import { 
-    getFirestore, 
-    collection, 
-    getDocs, 
-    doc, 
-    onSnapshot, 
-    addDoc, 
-    updateDoc, 
-    deleteDoc, 
-    setDoc, 
-    getDoc 
-} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
-
-// 3. Importa TODAS as ferramentas de Autenticação que este arquivo usa
-import { 
-    getAuth, 
-    onAuthStateChanged, 
-    signInWithEmailAndPassword, 
-    signOut 
-} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
