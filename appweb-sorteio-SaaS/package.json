@@ -1,10 +1,10 @@
 {
-  "name": "rifa-online-backend",
+  "name": "appweb-sorteio-saas-backend",
   "version": "1.0.0",
-  "description": "Dependências para as Netlify Functions da rifa.",
+  "description": "Funções do backend para a plataforma de sorteios SaaS",
   "dependencies": {
-    "@google/generative-ai": "^0.12.0",
     "firebase-admin": "^12.1.0",
-    "mercadopago": "^2.0.9"
+    "@google/generative-ai": "^0.12.0",
+    "stripe": "^15.8.0"
   }
 }
