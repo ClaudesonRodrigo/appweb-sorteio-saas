@@ -1,9 +1,34 @@
-// public/admin.js (Versão Definitiva - Correção da função de Regras - COMPLETO)
+// public/admin.js - Bloco de importação CORRETO e COMPLETO
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { app } from './firebase-init.js';
+// 1. Importa nosso 'app' já inicializado do arquivo central
+import { app } from './firebase-init.js'; 
+
+// 2. Importa TODAS as ferramentas do Firestore que este arquivo usa
+import { 
+    getFirestore, 
+    collection, 
+    getDocs, 
+    doc, 
+    onSnapshot, 
+    addDoc, 
+    updateDoc, 
+    deleteDoc, 
+    setDoc, 
+    getDoc 
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+
+// 3. Importa TODAS as ferramentas de Autenticação que este arquivo usa
+import { 
+    getAuth, 
+    onAuthStateChanged, 
+    signInWithEmailAndPassword, 
+    signOut 
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+
+
+// O resto do seu código continua normalmente a partir daqui...
+document.addEventListener('DOMContentLoaded', () => {
+//...
 
 document.addEventListener('DOMContentLoaded', () => {
 
