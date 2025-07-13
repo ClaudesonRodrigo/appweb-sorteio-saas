@@ -292,7 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (shoppingCartSection) shoppingCartSection.classList.add('hidden');
     }
 
-   // Substitua a sua função handleCheckout antiga por esta nova versão para a Stripe
+    // VERSÃO FINAL E CORRIGIDA da função handleCheckout
 
     async function handleCheckout() {
         if (isTestMode) return handleTestCheckout();
@@ -303,8 +303,6 @@ document.addEventListener('DOMContentLoaded', () => {
         paymentStatusEl.textContent = 'Aguarde, conectando com nosso sistema de pagamento...';
         paymentStatusEl.classList.remove('hidden');
         
-        // A criação dos itens continua a mesma, pois a nossa função no backend
-        // já sabe como lidar com este formato.
         const items = selectedNumbers.map(n => ({ 
             id: formatNumberForRaffleType(parseInt(n), raffleType), 
             title: `Sorteio Sergipano - ${raffleDetails.name} - Nº ${n}`, 
@@ -312,12 +310,22 @@ document.addEventListener('DOMContentLoaded', () => {
             unit_price: pricePerNumber
         }));
         
+        // ✅ LINHA QUE FALTAVA, ADICIONADA AQUI ✅
+        // Agrupa os dados do comprador que já temos em um único objeto.
+        const payerData = { ...currentUser, userId };
+        
+        // Captura o vendorId da URL, se existir, e adiciona ao payerData
+        const urlParams = new URLSearchParams(window.location.search);
+        const vendorId = urlParams.get('vendor') || null;
+        if (vendorId) {
+            payerData.vendorId = vendorId;
+        }
+    
         try {
-            // ✅ MUDANÇA 1: A URL agora aponta para a nossa nova função da Stripe.
             const res = await fetch('/.netlify/functions/create-stripe-payment-session', { 
                 method: 'POST',
-                // ✅ MUDANÇA 2: O corpo da requisição agora envia os itens e o raffleId.
-               body: JSON.stringify({ items, raffleId, payerData })
+                // Agora a variável 'payerData' existe e pode ser enviada.
+                body: JSON.stringify({ items, raffleId, payerData }) 
             });
     
             if (!res.ok) {
@@ -327,14 +335,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
             const data = await res.json();
             
-            // ✅ MUDANÇA 3: A lógica de redirecionamento continua a mesma!
-            // A Stripe também nos devolve uma URL de checkout.
             if (data.checkoutUrl) {
-                // Ainda salvamos os números pendentes para a mensagem de sucesso
                 localStorage.setItem('pendingRaffleId', raffleId);
                 localStorage.setItem('pendingNumbers', JSON.stringify(selectedNumbers));
-                
-                // Redireciona o cliente para a página de pagamento da Stripe
                 window.location.href = data.checkoutUrl;
             }
         } catch (e) {
