@@ -1,23 +1,18 @@
-// netlify/functions/firebase-admin-config.js
+// netlify/functions/firebase-admin-config.js - VERSÃO CORRIGIDA
 
 const admin = require('firebase-admin');
 
-// Decodifica a chave de serviço que está em Base64 nas variáveis de ambiente
-const serviceAccount = JSON.parse(
-  Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'base64').toString('utf-8')
-);
+// Só inicializa o app se ele ainda não foi inicializado
+if (!admin.apps.length) {
+  // Decodifica a chave de serviço que está em Base64
+  const serviceAccount = JSON.parse(
+    Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'base64').toString('utf-8')
+  );
 
-function initializeFirebaseAdmin() {
-  // Evita que o app seja inicializado mais de uma vez
-  if (!admin.apps.length) {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-  }
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
 }
 
-// Exporta a função de inicialização e a instância do banco de dados
-module.exports = {
-  initializeFirebaseAdmin,
-  db: admin.firestore(),
-};
+// Exporta a instância do admin já inicializada
+module.exports = admin;
