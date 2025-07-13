@@ -1,9 +1,9 @@
-// netlify/functions/delete-raffle.js
+// netlify/functions/delete-raffle.js - VERSÃO CORRIGIDA
 
-const { initializeFirebaseAdmin, db } = require('./firebase-admin-config');
+const admin = require('./firebase-admin-config'); // Importa o admin já inicializado
+const db = admin.firestore(); // Pega o banco de dados DEPOIS de inicializar
 
 exports.handler = async function(event, context) {
-    // Garante que apenas requisições POST sejam aceitas
     if (event.httpMethod !== 'POST') {
         return { statusCode: 405, body: 'Method Not Allowed' };
     }
@@ -14,13 +14,9 @@ exports.handler = async function(event, context) {
             return { statusCode: 400, body: JSON.stringify({ error: 'ID da rifa é obrigatório.' }) };
         }
 
-        // Inicializa a conexão de admin com o Firebase
-        initializeFirebaseAdmin();
-
         const raffleRef = db.collection('rifas').doc(raffleId);
         const soldNumbersRef = raffleRef.collection('sold_numbers');
 
-        // Deleta todos os números vendidos em um batch
         const snapshot = await soldNumbersRef.get();
         if (!snapshot.empty) {
             const batch = db.batch();
@@ -30,7 +26,6 @@ exports.handler = async function(event, context) {
             await batch.commit();
         }
 
-        // Deleta o documento principal da rifa
         await raffleRef.delete();
 
         return {
