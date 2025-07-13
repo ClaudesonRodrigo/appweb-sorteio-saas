@@ -1,5 +1,4 @@
 // public/admin.js - Versão 100% COMPLETA com Gestão de Revendedores
-
 // 1. Importa nosso 'app' já inicializado do arquivo central
 import { app } from './firebase-init.js'; 
 
