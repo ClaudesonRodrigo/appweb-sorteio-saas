@@ -42,8 +42,50 @@
             <h2 class="text-2xl font-semibold mb-4">Configurações Gerais</h2>
             <div>
                 <label for="rules-text-area" class="block text-sm font-medium text-gray-300 mb-2">Regras Gerais do Sorteio</label>
-                <textarea id="rules-text-area" rows="6" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg" placeholder="Escreva aqui as regras que se aplicam a todos os sorteios..."></textarea>
+                <textarea id="rules-text-area" rows="6" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg" placeholder="Escreva aqui as regras que se aplicam a todas as rifas..."></textarea>
                 <button id="save-rules-btn" class="mt-3 px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold">Salvar Regras</button>
+            </div>
+        </div>
+
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg mt-8">
+            <h2 class="text-2xl font-bold text-teal-400 mb-4 border-b border-gray-700 pb-2">Gerador de Links para Revendedores</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="raffle-id-for-vendor" class="block text-sm font-medium text-gray-300 mb-1">ID do Sorteio:</label>
+                    <input type="text" id="raffle-id-for-vendor" class="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600" placeholder="Cole o ID do sorteio aqui...">
+                </div>
+                <div>
+                    <label for="vendor-name" class="block text-sm font-medium text-gray-300 mb-1">Nome ou ID do Revendedor:</label>
+                    <input type="text" id="vendor-name" class="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600" placeholder="ex: atanazio_123">
+                </div>
+                <button id="generate-vendor-link-btn" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-md">
+                    Gerar Link Mágico
+                </button>
+                <div id="vendor-link-result" class="hidden mt-4 bg-gray-900 p-4 rounded-md">
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Link Gerado:</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="generated-link-output" class="w-full bg-gray-700 text-green-400 p-2 rounded-md border-0" readonly>
+                        <button id="copy-link-btn" class="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md" title="Copiar">
+                            Copiar
+                        </button>
+                    </div>
+                    <p id="copy-feedback" class="text-green-500 text-xs mt-2 hidden">Link copiado!</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg mt-8">
+            <h2 class="text-2xl font-bold text-sky-400 mb-4 border-b border-gray-700 pb-2">Relatório de Vendas por Revendedor</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="report-raffle-id" class="block text-sm font-medium text-gray-300 mb-1">ID do Sorteio para Análise:</label>
+                    <input type="text" id="report-raffle-id" class="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600" placeholder="Cole o ID do sorteio aqui...">
+                </div>
+                <button id="generate-report-btn" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-md">
+                    Gerar Relatório
+                </button>
+                <div id="report-output-section" class="hidden mt-4 space-y-3">
+                </div>
             </div>
         </div>
 
@@ -116,20 +158,6 @@
                     </div>
                 </div>
                 <div id="no-winner-info-admin" class="mt-6 hidden bg-red-900/50 p-4 rounded-lg"><p class="text-yellow-400"><i class="fas fa-exclamation-triangle mr-2"></i>O número sorteado não foi comprado.</p></div>
-            </div>
-
-            <div id="vendor-management-section" class="mt-8 p-6 bg-gray-900 rounded-lg shadow-lg">
-                <h3 class="text-xl font-bold text-teal-400 mb-4">Gestão de Revendedores</h3>
-                <div class="flex items-center space-x-2 mb-6">
-                    <input type="text" id="new-vendor-name" placeholder="Nome do novo revendedor" class="flex-grow bg-gray-700 text-white p-2 rounded-md border border-gray-600 focus:ring-2 focus:ring-teal-500 focus:outline-none">
-                    <button id="add-vendor-btn" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-md">
-                        Adicionar
-                    </button>
-                </div>
-                <h4 class="text-lg font-semibold text-gray-300 mb-2">Revendedores Ativos</h4>
-                <div id="vendors-list" class="space-y-3">
-                    <p class="text-gray-500">Nenhum revendedor adicionado para este sorteio.</p>
-                </div>
             </div>
             
             <div class="mt-8 p-6 bg-gray-900 rounded-lg overflow-x-auto">
