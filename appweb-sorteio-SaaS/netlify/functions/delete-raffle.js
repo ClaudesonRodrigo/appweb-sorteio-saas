@@ -1,51 +1,9 @@
 // netlify/functions/delete-raffle.js
 
-const admin = require('firebase-admin');
+const { initializeFirebaseAdmin, db } = require('./firebase-admin-config');
 
-// Inicializa o Firebase Admin (reutilizando a lógica que já temos)
-function initializeFirebaseAdmin() {
-    if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-        throw new Error("A chave de serviço do Firebase não está configurada.");
-    }
-    if (!admin.apps.length) {
-        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
-        });
-    }
-    return admin.firestore();
-}
-
-// Função para apagar uma coleção inteira em lotes
-async function deleteCollection(db, collectionPath, batchSize) {
-    const collectionRef = db.collection(collectionPath);
-    const query = collectionRef.orderBy('__name__').limit(batchSize);
-
-    return new Promise((resolve, reject) => {
-        deleteQueryBatch(db, query, resolve).catch(reject);
-    });
-}
-
-async function deleteQueryBatch(db, query, resolve) {
-    const snapshot = await query.get();
-    if (snapshot.size === 0) {
-        return resolve();
-    }
-
-    const batch = db.batch();
-    snapshot.docs.forEach((doc) => {
-        batch.delete(doc.ref);
-    });
-    await batch.commit();
-
-    process.nextTick(() => {
-        deleteQueryBatch(db, query, resolve);
-    });
-}
-
-
-// Handler principal da função Netlify
-exports.handler = async function(event) {
+exports.handler = async function(event, context) {
+    // Garante que apenas requisições POST sejam aceitas
     if (event.httpMethod !== 'POST') {
         return { statusCode: 405, body: 'Method Not Allowed' };
     }
@@ -53,28 +11,38 @@ exports.handler = async function(event) {
     try {
         const { raffleId } = JSON.parse(event.body);
         if (!raffleId) {
-            return { statusCode: 400, body: 'O ID da rifa é obrigatório.' };
+            return { statusCode: 400, body: JSON.stringify({ error: 'ID da rifa é obrigatório.' }) };
         }
 
-        const db = initializeFirebaseAdmin();
-        const raffleRef = db.collection('rifas').doc(raffleId);
-        
-        // Apaga a subcoleção 'sold_numbers'
-        await deleteCollection(db, `rifas/${raffleId}/sold_numbers`, 100);
+        // Inicializa a conexão de admin com o Firebase
+        initializeFirebaseAdmin();
 
-        // Apaga o documento principal da rifa
+        const raffleRef = db.collection('rifas').doc(raffleId);
+        const soldNumbersRef = raffleRef.collection('sold_numbers');
+
+        // Deleta todos os números vendidos em um batch
+        const snapshot = await soldNumbersRef.get();
+        if (!snapshot.empty) {
+            const batch = db.batch();
+            snapshot.docs.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+            await batch.commit();
+        }
+
+        // Deleta o documento principal da rifa
         await raffleRef.delete();
 
         return {
             statusCode: 200,
-            body: JSON.stringify({ message: `Rifa ${raffleId} e todos os seus dados foram apagados com sucesso.` }),
+            body: JSON.stringify({ message: `Rifa ${raffleId} e todos os seus números foram excluídos.` }),
         };
 
     } catch (error) {
-        console.error("Erro ao apagar rifa:", error);
+        console.error("Erro ao excluir rifa:", error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: `Falha ao apagar a rifa: ${error.message}` }),
+            body: JSON.stringify({ error: 'Falha ao excluir a rifa no servidor.' }),
         };
     }
 };
