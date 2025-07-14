@@ -1,4 +1,4 @@
-// public/admin.js - Versão limpa e compatível com o novo admin.html
+// public/admin.js - Versão 100% COMPLETA com Gestão de Revendedores
 
 // 1. Importa nosso 'app' já inicializado do arquivo central
 import { app } from './firebase-init.js'; 
@@ -67,7 +67,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loginScreen.classList.add('hidden');
         adminPanel.classList.remove('hidden');
         
-        // --- Seletores de Elementos do Painel ---
         const logoutBtn = document.getElementById('logout-btn');
         const adminEmailDisplay = document.getElementById('admin-email-display');
         const createRaffleBtn = document.getElementById('create-raffle-btn');
@@ -146,81 +145,95 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-        const saveRaffleName = async () => { /* ...código sem alteração... */ };
-        const declareWinner = async () => { /* ...código sem alteração... */ };
-        const loadRules = async () => { /* ...código sem alteração... */ };
-        const saveRules = async () => { /* ...código sem alteração... */ };
-        const showEditRaffleNameUI = () => { /* ...código sem alteração... */ };
-        const hideEditRaffleNameUI = () => { /* ...código sem alteração... */ };
-        const handleSearch = () => { /* ...código sem alteração... */ };
-        const renderTable = (data) => {
-            participantsTableBody.innerHTML = '';
-            if (data.length === 0) return participantsTableBody.innerHTML = `<tr><td colspan="3" class="text-center p-8">Nenhum participante.</td></tr>`;
-            data.forEach(p => {
-                p.numbers.sort();
-                const row = document.createElement('tr');
-                row.className = 'border-b border-gray-700';
-                row.innerHTML = `<td class="p-3">${p.name}</td><td class="p-3">${p.whatsapp}</td><td class="p-3"><div class="flex flex-wrap gap-2">${p.numbers.map(n => `<span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">${n}</span>`).join('')}</div></td>`;
-                participantsTableBody.appendChild(row);
-            });
-        };
-        const updateSummary = (sold, parts, price) => { /* ...código sem alteração... */ };
-        const processRifaData = (soldNumbers) => { /* ...código sem alteração... */ };
-        const showWinnerInAdminPanel = (info) => { /* ...código sem alteração... */ };
-        
-        // LÓGICA DE REVENDEDORES
-        const addVendor = async () => {
-            const vendorName = newVendorNameInput.value.trim();
-            if (!vendorName || !currentRaffleId) {
-                return alert("Por favor, selecione um sorteio e digite o nome do revendedor.");
-            }
+        const saveRaffleName = async () => {
+            const newName = editRaffleNameInput.value.trim();
+            if (!newName || !currentRaffleId) return;
             try {
-                const vendorId = vendorName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-                if (!vendorId) return alert("Nome de revendedor inválido.");
-                const vendorRef = doc(db, "rifas", currentRaffleId, "vendors", vendorId);
-                await setDoc(vendorRef, { name: vendorName, createdAt: new Date() });
-                alert(`Revendedor "${vendorName}" adicionado com sucesso!`);
-                newVendorNameInput.value = '';
-            } catch (error) {
-                console.error("Erro ao adicionar revendedor:", error);
-                alert("Não foi possível adicionar o revendedor.");
+                await updateDoc(doc(db, "rifas", currentRaffleId), { name: newName });
+                alert("Nome atualizado!");
+                hideEditRaffleNameUI();
+            } catch (e) { console.error("Erro ao atualizar nome:", e); }
+        };
+
+        const declareWinner = async () => {
+            if (!currentRaffleId) return alert("Nenhum sorteio selecionado.");
+            const winningNumberRaw = winningNumberInput.value.trim();
+            const raffleType = raffleDetails.type || 'dezena';
+            let paddedWinningNumber;
+            if (raffleType === 'dezena') {
+                paddedWinningNumber = winningNumberRaw.padStart(2, '0');
+                if (parseInt(paddedWinningNumber, 10) < 0 || parseInt(paddedWinningNumber, 10) > 99 || winningNumberRaw.length > 2) return alert("Número inválido para Dezena (00-99).");
+            } else if (raffleType === 'centena') {
+                paddedWinningNumber = winningNumberRaw.padStart(3, '0');
+                if (parseInt(paddedWinningNumber, 10) < 0 || parseInt(paddedWinningNumber, 10) > 999 || winningNumberRaw.length > 3) return alert("Número inválido para Centena (000-999).");
+            } else if (raffleType === 'milhar') {
+                paddedWinningNumber = winningNumberRaw.padStart(4, '0');
+                if (parseInt(paddedWinningNumber, 10) < 0 || parseInt(paddedWinningNumber, 10) > 9999 || winningNumberRaw.length > 4) return alert("Número inválido para Milhar (0000-9999).");
+            } else { return alert("Tipo de sorteio desconhecido."); }
+            try {
+                const winnerDocRef = doc(db, "rifas", currentRaffleId, "sold_numbers", paddedWinningNumber);
+                const winnerDoc = await getDoc(winnerDocRef);
+                const winnerData = winnerDoc.exists() ? winnerDoc.data() : null;
+                await updateDoc(doc(db, "rifas", currentRaffleId), { 
+                    winner: { number: paddedWinningNumber, player: winnerData }, 
+                    status: 'finished' 
+                });
+                alert(`Sorteio finalizado!`);
+            } catch (e) { console.error("Erro ao declarar ganhador:", e); }
+        };
+        
+        const loadRules = async () => {
+            try {
+                const docSnap = await getDoc(settingsDocRef);
+                if (docSnap.exists() && rulesTextArea) {
+                    rulesTextArea.value = docSnap.data().text || '';
+                }
+            } catch (e) { 
+                console.error("Erro ao carregar regras:", e); 
+                alert("Não foi possível carregar as regras.");
             }
         };
 
-        const listenToVendors = (raffleId) => {
-            if (currentVendorsUnsubscribe) currentVendorsUnsubscribe();
-            const vendorsRef = collection(db, "rifas", raffleId, "vendors");
-            currentVendorsUnsubscribe = onSnapshot(vendorsRef, (snapshot) => {
-                vendorsListEl.innerHTML = '';
-                if (snapshot.empty) {
-                    vendorsListEl.innerHTML = '<p class="text-gray-500">Nenhum revendedor adicionado.</p>';
-                    return;
-                }
-                snapshot.docs.forEach(doc => {
-                    const vendor = doc.data();
-                    const vendorId = doc.id;
-                    const el = document.createElement('div');
-                    el.className = 'bg-gray-800 p-3 rounded-md flex justify-between items-center';
-                    el.innerHTML = `
-                        <span class="text-white">${vendor.name}</span>
-                        <button data-raffle-id="${raffleId}" data-vendor-id="${vendorId}" class="generate-link-btn bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1 px-3 rounded-md">
-                            Gerar Link
-                        </button>
-                    `;
-                    vendorsListEl.appendChild(el);
-                });
-            });
+        const saveRules = async () => {
+            if (!rulesTextArea.value) {
+                alert("O campo de regras não pode estar vazio.");
+                return;
+            }
+            saveRulesBtn.disabled = true;
+            saveRulesBtn.textContent = 'A salvar...';
+            try {
+                await setDoc(settingsDocRef, { text: rulesTextArea.value });
+                alert("Regras salvas com sucesso!");
+            } catch (error) {
+                console.error("Erro ao salvar as regras: ", error);
+                alert("Ocorreu um erro ao salvar as regras. Tente novamente.");
+            } finally {
+                saveRulesBtn.disabled = false;
+                saveRulesBtn.textContent = 'Salvar Regras';
+            }
         };
 
-        const generateAndShowVendorLink = (raffleId, vendorId) => {
-            const baseUrl = window.location.origin;
-            const vendorLink = `${baseUrl}/rifa.html?id=${raffleId}&vendor=${vendorId}`;
-            window.prompt(`Link exclusivo para o revendedor (Copie com Ctrl+C):`, vendorLink);
+        const showEditRaffleNameUI = () => {
+            if (!raffleDetails.name) return;
+            raffleNameDisplay.classList.add('hidden');
+            editRaffleNameSection.classList.remove('hidden');
+            editRaffleNameInput.value = raffleDetails.name;
+            editRaffleNameInput.focus();
+        };
+
+        const hideEditRaffleNameUI = () => {
+            raffleNameDisplay.classList.remove('hidden');
+            editRaffleNameSection.classList.add('hidden');
+        };
+
+        const handleSearch = () => {
+            const term = searchInput.value.toLowerCase();
+            const filtered = term ? allParticipantsData.filter(p => p.name.toLowerCase().includes(term) || p.numbers.some(n => n.includes(term))) : allParticipantsData;
+            renderTable(filtered);
         };
         
-        // --- LÓGICA PRINCIPAL ---
         function listenToAllRaffles() {
-             if (allRafflesUnsubscribe) allRafflesUnsubscribe();
+            if (allRafflesUnsubscribe) allRafflesUnsubscribe();
             allRafflesUnsubscribe = onSnapshot(rafflesCollectionRef, (snapshot) => {
                 if(!rafflesListEl) return;
                 rafflesListEl.innerHTML = '';
@@ -275,6 +288,108 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         };
         
+        const processRifaData = (soldNumbers) => {
+            const participants = {};
+            const soldCount = Object.keys(soldNumbers).length;
+            for (const number in soldNumbers) {
+                const pData = soldNumbers[number];
+                if (pData?.userId) {
+                    if (!participants[pData.userId]) {
+                        participants[pData.userId] = { ...pData, numbers: [] };
+                    }
+                    participants[pData.userId].numbers.push(number);
+                }
+            }
+            allParticipantsData = Object.values(participants);
+            renderTable(allParticipantsData);
+            updateSummary(soldCount, allParticipantsData.length, raffleDetails.pricePerNumber);
+        };
+        
+        const renderTable = (data) => {
+            participantsTableBody.innerHTML = '';
+            if (data.length === 0) return participantsTableBody.innerHTML = `<tr><td colspan="3" class="text-center p-8">Nenhum participante.</td></tr>`;
+            data.forEach(p => {
+                p.numbers.sort();
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-700';
+                row.innerHTML = `<td class="p-3">${p.name}</td><td class="p-3">${p.whatsapp}</td><td class="p-3"><div class="flex flex-wrap gap-2">${p.numbers.map(n => `<span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">${n}</span>`).join('')}</div></td>`;
+                participantsTableBody.appendChild(row);
+            });
+        };
+        
+        const updateSummary = (sold, parts, price = 0) => {
+            soldNumbersEl.textContent = sold;
+            totalParticipantsEl.textContent = parts;
+            totalRevenueEl.textContent = (sold * (price || 0)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        };
+
+        const showWinnerInAdminPanel = (info) => {
+            declareWinnerArea.classList.add('hidden');
+            const { number, player } = info;
+            if (player) {
+                adminWinnerNumber.textContent = number;
+                adminWinnerName.textContent = player.name;
+                adminWinnerContact.textContent = `${player.email} / ${player.whatsapp}`;
+                adminWinnerPix.textContent = player.pix;
+                winnerInfoAdmin.classList.remove('hidden');
+                noWinnerInfoAdmin.classList.add('hidden');
+            } else {
+                adminWinnerNumber.textContent = number;
+                noWinnerInfoAdmin.classList.remove('hidden');
+                winnerInfoAdmin.classList.add('hidden');
+            }
+        };
+
+        // ✅ LÓGICA DE REVENDEDORES
+        const addVendor = async () => {
+            const vendorName = newVendorNameInput.value.trim();
+            if (!vendorName || !currentRaffleId) {
+                return alert("Por favor, selecione um sorteio e digite o nome do revendedor.");
+            }
+            try {
+                const vendorId = vendorName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                if (!vendorId) return alert("Nome de revendedor inválido.");
+                const vendorRef = doc(db, "rifas", currentRaffleId, "vendors", vendorId);
+                await setDoc(vendorRef, { name: vendorName, createdAt: new Date() });
+                alert(`Revendedor "${vendorName}" adicionado com sucesso!`);
+                newVendorNameInput.value = '';
+            } catch (error) {
+                console.error("Erro ao adicionar revendedor:", error);
+                alert("Não foi possível adicionar o revendedor.");
+            }
+        };
+
+        const listenToVendors = (raffleId) => {
+            if (currentVendorsUnsubscribe) currentVendorsUnsubscribe();
+            const vendorsRef = collection(db, "rifas", raffleId, "vendors");
+            currentVendorsUnsubscribe = onSnapshot(vendorsRef, (snapshot) => {
+                vendorsListEl.innerHTML = '';
+                if (snapshot.empty) {
+                    vendorsListEl.innerHTML = '<p class="text-gray-500">Nenhum revendedor adicionado.</p>';
+                    return;
+                }
+                snapshot.docs.forEach(doc => {
+                    const vendor = doc.data();
+                    const vendorId = doc.id;
+                    const el = document.createElement('div');
+                    el.className = 'bg-gray-800 p-3 rounded-md flex justify-between items-center';
+                    el.innerHTML = `
+                        <span class="text-white">${vendor.name}</span>
+                        <button data-raffle-id="${raffleId}" data-vendor-id="${vendorId}" class="generate-link-btn bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1 px-3 rounded-md">
+                            Gerar Link
+                        </button>
+                    `;
+                    vendorsListEl.appendChild(el);
+                });
+            });
+        };
+
+        const generateAndShowVendorLink = (raffleId, vendorId) => {
+            const baseUrl = window.location.origin;
+            const vendorLink = `${baseUrl}/rifa.html?id=${raffleId}&vendor=${vendorId}`;
+            window.prompt(`Link exclusivo para o revendedor (Copie com Ctrl+C):`, vendorLink);
+        };
+        
         // --- EVENT LISTENERS ---
         logoutBtn.addEventListener('click', handleLogout);
         createRaffleBtn.addEventListener('click', createRaffle);
@@ -284,6 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
         saveRaffleNameBtn.addEventListener('click', saveRaffleName);
         cancelEditRaffleNameBtn.addEventListener('click', hideEditRaffleNameUI);
         saveRulesBtn.addEventListener('click', saveRules);
+        
         rafflesListEl.addEventListener('click', (e) => {
             const deleteBtn = e.target.closest('.delete-raffle-btn');
             if (deleteBtn) {
@@ -295,6 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
+        // ✅ EVENT LISTENERS PARA A NOVA SEÇÃO DE REVENDEDORES
         addVendorBtn.addEventListener('click', addVendor);
         vendorsListEl.addEventListener('click', (e) => {
             if (e.target.classList.contains('generate-link-btn')) {
