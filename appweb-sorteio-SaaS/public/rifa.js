@@ -122,6 +122,47 @@ document.addEventListener('DOMContentLoaded', () => {
             userSection.classList.remove('hidden');
         }
     }
+    // Função para lidar com o clique nos botões de cota
+    const handleCotaClick = (event) => {
+        if (!event.target.classList.contains('cota-btn')) return;
+    
+        const quantity = parseInt(event.target.dataset.quantity, 10);
+    
+        // 1. Criamos um array com TODOS os números possíveis do sorteio
+        const allPossibleNumbers = Array.from({ length: totalNumbersInRaffle }, (_, i) => formatNumberForRaffleType(i, raffleType));
+    
+        // 2. Filtramos para ter um array apenas com os números AINDA DISPONÍVEIS
+        const availableNumbers = allPossibleNumbers.filter(num => !soldNumbersData[num]);
+    
+        // 3. Verificamos se há números suficientes para a cota
+        if (availableNumbers.length < quantity) {
+            return alert(`Não há ${quantity} números disponíveis para esta cota. Por favor, escolha uma cota menor ou selecione manualmente.`);
+        }
+    
+        // 4. Embaralhamos os números disponíveis para garantir a aleatoriedade
+        for (let i = availableNumbers.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [availableNumbers[i], availableNumbers[j]] = [availableNumbers[j], availableNumbers[i]];
+        }
+    
+        // 5. Pegamos a quantidade de números desejada
+        const randomSelection = availableNumbers.slice(0, quantity);
+    
+        // 6. Adicionamos os números selecionados ao carrinho
+        // Limpamos a seleção anterior para não somar
+        selectedNumbers = []; 
+        randomSelection.forEach(num => {
+            if (!selectedNumbers.includes(num)) {
+                selectedNumbers.push(num);
+            }
+        });
+    
+        // 7. Atualizamos a interface
+        alert(`${quantity} números aleatórios foram adicionados ao seu carrinho!`);
+        updateShoppingCart();
+        renderNumberGrid(totalNumbersInRaffle); // Re-renderiza a grade para mostrar os selecionados
+        shoppingCartSection.scrollIntoView({ behavior: 'smooth' }); // Rola a tela para o carrinho
+    };
 
     function setupFirestoreListeners() {
         const raffleDocRef = doc(db, "rifas", raffleId);
@@ -589,6 +630,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showRulesBtn.addEventListener('click', showRules);
     closeRulesModalBtn.addEventListener('click', closeRules);
     getLuckyNumbersBtn.addEventListener('click', getLuckyNumbers);
+    cotasSection.addEventListener('click', handleCotaClick);
     setupAuthListener();
     setupShareButtons();
 });
