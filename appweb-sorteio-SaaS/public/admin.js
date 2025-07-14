@@ -1,4 +1,4 @@
-// public/admin.js - Versão Estável Pós-Refatoração
+// public/admin.js - Versão 100% COMPLETA com Gestão de Revendedores
 
 // 1. Importa nosso 'app' já inicializado do arquivo central
 import { app } from './firebase-init.js'; 
@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let allRafflesUnsubscribe = null;
     let currentRaffleUnsubscribe = null;
     let currentSoldNumbersUnsubscribe = null;
+    let currentVendorsUnsubscribe = null;
 
     const handleLogin = async () => {
         loginError.classList.add('hidden');
@@ -59,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (allRafflesUnsubscribe) allRafflesUnsubscribe();
         if (currentRaffleUnsubscribe) currentRaffleUnsubscribe();
         if (currentSoldNumbersUnsubscribe) currentSoldNumbersUnsubscribe();
+        if (currentVendorsUnsubscribe) currentVendorsUnsubscribe();
     };
 
     function initializeAdminPanel(user) {
@@ -96,17 +98,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const cancelEditRaffleNameBtn = document.getElementById('cancel-edit-raffle-name-btn');
         const rulesTextArea = document.getElementById('rules-text-area'); 
         const saveRulesBtn = document.getElementById('save-rules-btn');
-        const raffleIdForVendorInput = document.getElementById('raffle-id-for-vendor');
-        const vendorNameInput = document.getElementById('vendor-name');
-        const generateVendorLinkBtn = document.getElementById('generate-vendor-link-btn');
-        const vendorLinkResultSection = document.getElementById('vendor-link-result');
-        const generatedLinkOutput = document.getElementById('generated-link-output');
-        const copyLinkBtn = document.getElementById('copy-link-btn');
-        const copyFeedback = document.getElementById('copy-feedback');
-        const reportRaffleIdInput = document.getElementById('report-raffle-id');
-        const generateReportBtn = document.getElementById('generate-report-btn');
-        const reportOutputSection = document.getElementById('report-output-section');
-
+        
+        // NOVOS ELEMENTOS PARA GESTÃO DE REVENDEDORES
+        const newVendorNameInput = document.getElementById('new-vendor-name');
+        const addVendorBtn = document.getElementById('add-vendor-btn');
+        const vendorsListEl = document.getElementById('vendors-list');
+        
         adminEmailDisplay.textContent = `Logado como: ${user.email}`;
 
         let currentRaffleId = null;
@@ -132,14 +129,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const deleteRaffle = async (raffleId, raffleName) => {
             if (window.confirm(`Tem a certeza que quer excluir o sorteio "${raffleName}"? Esta ação não pode ser desfeita.`)) {
                 try {
-                    const response = await fetch('/.netlify/functions/delete-raffle', {
+                    await fetch('/.netlify/functions/delete-raffle', {
                         method: 'POST',
                         body: JSON.stringify({ raffleId: raffleId }),
                     });
-                    if (!response.ok) {
-                        const err = await response.json();
-                        throw new Error(err.error || 'Falha na resposta do servidor.');
-                    }
                     if (currentRaffleId === raffleId) {
                         raffleDetailsSection.classList.add('hidden');
                         currentRaffleId = null;
@@ -208,7 +201,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             saveRulesBtn.disabled = true;
             saveRulesBtn.textContent = 'A salvar...';
-
             try {
                 await setDoc(settingsDocRef, { text: rulesTextArea.value });
                 alert("Regras salvas com sucesso!");
@@ -265,15 +257,16 @@ document.addEventListener('DOMContentLoaded', () => {
             detailsRaffleName.textContent = raffleName;
             raffleDetailsSection.classList.remove('hidden');
             hideEditRaffleNameUI();
-            listenToAllRaffles();
+            listenToAllRaffles(); 
             if (currentRaffleUnsubscribe) currentRaffleUnsubscribe();
             if (currentSoldNumbersUnsubscribe) currentSoldNumbersUnsubscribe();
+            
+            listenToVendors(raffleId);
 
             const raffleDocRef = doc(db, "rifas", raffleId);
             currentRaffleUnsubscribe = onSnapshot(raffleDocRef, (docSnap) => {
-                if (!docSnap.exists()) {
-                    raffleDetailsSection.classList.add('hidden');
-                    return;
+                 if (!docSnap.exists()) {
+                    raffleDetailsSection.classList.add('hidden'); return;
                 }
                 raffleDetails = docSnap.data();
                 if (raffleDetails.winner) {
@@ -290,9 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const soldNumbersColRef = collection(db, "rifas", raffleId, "sold_numbers");
             currentSoldNumbersUnsubscribe = onSnapshot(soldNumbersColRef, (snapshot) => {
                 const soldNumbers = {};
-                snapshot.forEach(doc => {
-                    soldNumbers[doc.id] = doc.data();
-                });
+                snapshot.forEach(doc => { soldNumbers[doc.id] = doc.data(); });
                 processRifaData(soldNumbers);
             });
         };
@@ -316,12 +307,12 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const renderTable = (data) => {
             participantsTableBody.innerHTML = '';
-            if (data.length === 0) return participantsTableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8">Nenhum participante.</td></tr>`;
+            if (data.length === 0) return participantsTableBody.innerHTML = `<tr><td colspan="3" class="text-center p-8">Nenhum participante.</td></tr>`;
             data.forEach(p => {
                 p.numbers.sort();
                 const row = document.createElement('tr');
                 row.className = 'border-b border-gray-700';
-                row.innerHTML = `<td class="p-3">${p.name}</td><td class="p-3"><div class="flex flex-col"><span>${p.email}</span><span>${p.whatsapp}</span></div></td><td class="p-3">${p.pix}</td><td class="p-3"><div class="flex flex-wrap gap-2">${p.numbers.map(n => `<span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">${n}</span>`).join('')}</div></td>`;
+                row.innerHTML = `<td class="p-3">${p.name}</td><td class="p-3">${p.whatsapp}</td><td class="p-3"><div class="flex flex-wrap gap-2">${p.numbers.map(n => `<span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">${n}</span>`).join('')}</div></td>`;
                 participantsTableBody.appendChild(row);
             });
         };
@@ -349,6 +340,57 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
+        // ✅ LÓGICA DE REVENDEDORES
+        const addVendor = async () => {
+            const vendorName = newVendorNameInput.value.trim();
+            if (!vendorName || !currentRaffleId) {
+                return alert("Por favor, selecione um sorteio e digite o nome do revendedor.");
+            }
+            try {
+                const vendorId = vendorName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                if (!vendorId) return alert("Nome de revendedor inválido.");
+                const vendorRef = doc(db, "rifas", currentRaffleId, "vendors", vendorId);
+                await setDoc(vendorRef, { name: vendorName, createdAt: new Date() });
+                alert(`Revendedor "${vendorName}" adicionado com sucesso!`);
+                newVendorNameInput.value = '';
+            } catch (error) {
+                console.error("Erro ao adicionar revendedor:", error);
+                alert("Não foi possível adicionar o revendedor.");
+            }
+        };
+
+        const listenToVendors = (raffleId) => {
+            if (currentVendorsUnsubscribe) currentVendorsUnsubscribe();
+            const vendorsRef = collection(db, "rifas", raffleId, "vendors");
+            currentVendorsUnsubscribe = onSnapshot(vendorsRef, (snapshot) => {
+                vendorsListEl.innerHTML = '';
+                if (snapshot.empty) {
+                    vendorsListEl.innerHTML = '<p class="text-gray-500">Nenhum revendedor adicionado.</p>';
+                    return;
+                }
+                snapshot.docs.forEach(doc => {
+                    const vendor = doc.data();
+                    const vendorId = doc.id;
+                    const el = document.createElement('div');
+                    el.className = 'bg-gray-800 p-3 rounded-md flex justify-between items-center';
+                    el.innerHTML = `
+                        <span class="text-white">${vendor.name}</span>
+                        <button data-raffle-id="${raffleId}" data-vendor-id="${vendorId}" class="generate-link-btn bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1 px-3 rounded-md">
+                            Gerar Link
+                        </button>
+                    `;
+                    vendorsListEl.appendChild(el);
+                });
+            });
+        };
+
+        const generateAndShowVendorLink = (raffleId, vendorId) => {
+            const baseUrl = window.location.origin;
+            const vendorLink = `${baseUrl}/rifa.html?id=${raffleId}&vendor=${vendorId}`;
+            window.prompt(`Link exclusivo para o revendedor (Copie com Ctrl+C):`, vendorLink);
+        };
+        
+        // --- EVENT LISTENERS ---
         logoutBtn.addEventListener('click', handleLogout);
         createRaffleBtn.addEventListener('click', createRaffle);
         declareWinnerBtn.addEventListener('click', declareWinner);
@@ -369,114 +411,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        if(generateVendorLinkBtn) {
-            generateVendorLinkBtn.addEventListener('click', () => {
-                const raffleId = raffleIdForVendorInput.value.trim();
-                if(!raffleId) {
-                    alert('Por favor, cole o ID do sorteio para gerar o link.');
-                    return;
-                }
-                raffleIdForVendorInput.value = raffleId;
-                const vendorId = vendorNameInput.value.trim();
-                if (!vendorId) {
-                    alert('Por favor, preencha o Nome do Revendedor.');
-                    return;
-                }
-                const baseUrl = window.location.origin;
-                const vendorLink = `${baseUrl}/rifa.html?id=${raffleId}&vendor=${vendorId}`;
-                generatedLinkOutput.value = vendorLink;
-                vendorLinkResultSection.classList.remove('hidden');
-                copyFeedback.classList.add('hidden');
-            });
-        }
-        if(copyLinkBtn) {
-            copyLinkBtn.addEventListener('click', () => {
-                generatedLinkOutput.select();
-                document.execCommand('copy');
-                copyFeedback.classList.remove('hidden');
-                setTimeout(() => {
-                    copyFeedback.classList.add('hidden');
-                }, 2000);
-            });
-        }
+        // ✅ EVENT LISTENERS PARA A NOVA SEÇÃO DE REVENDEDORES
+        addVendorBtn.addEventListener('click', addVendor);
+        vendorsListEl.addEventListener('click', (e) => {
+            if (e.target.classList.contains('generate-link-btn')) {
+                const raffleId = e.target.dataset.raffleId;
+                const vendorId = e.target.dataset.vendorId;
+                generateAndShowVendorLink(raffleId, vendorId);
+            }
+        });
         
-        if(generateReportBtn) {
-            generateReportBtn.addEventListener('click', async () => {
-                const raffleId = reportRaffleIdInput.value.trim();
-                if(!raffleId) {
-                    alert('Por favor, cole o ID do sorteio para gerar o relatório.');
-                    return;
-                }
-                reportRaffleIdInput.value = raffleId;
-                generateReportBtn.disabled = true;
-                generateReportBtn.textContent = 'A gerar...';
-                reportOutputSection.innerHTML = '<p class="text-center text-sky-400">A consultar o banco de dados...</p>';
-                reportOutputSection.classList.remove('hidden');
-                try {
-                    const soldNumbersRef = collection(db, 'rifas', raffleId, 'sold_numbers');
-                    const querySnapshot = await getDocs(soldNumbersRef);
-
-                    if (querySnapshot.empty) {
-                        reportOutputSection.innerHTML = '<p class="text-center text-yellow-400">Nenhum número vendido para este sorteio ainda.</p>';
-                    } else {
-                        const salesByVendor = {};
-                        let totalSoldByVendors = 0;
-                        querySnapshot.forEach(doc => {
-                            const data = doc.data();
-                            const number = doc.id;
-                            const vendorId = data.vendorId || 'Vendas Diretas (Sem Vendedor)';
-                            if (!salesByVendor[vendorId]) {
-                                salesByVendor[vendorId] = { count: 0, numbers: [] };
-                            }
-                            salesByVendor[vendorId].count++;
-                            salesByVendor[vendorId].numbers.push(number);
-                            if(data.vendorId) {
-                                totalSoldByVendors++;
-                            }
-                        });
-                        let reportHTML = `<h3 class="text-lg font-semibold text-white">Total de Vendas por Revendedores: ${totalSoldByVendors}</h3>`;
-                        for (const vendorId in salesByVendor) {
-                            const vendorData = salesByVendor[vendorId];
-                            vendorData.numbers.sort();
-                            const isDirectSale = vendorId === 'Vendas Diretas (Sem Vendedor)';
-                            reportHTML += `
-                                <div class="bg-gray-900 p-4 rounded-lg mt-2">
-                                    <div class="flex justify-between items-center mb-2">
-                                        <p class="font-bold text-teal-400">${vendorId}</p>
-                                        ${!isDirectSale ? `<button class="get-vendor-link-btn bg-sky-600 hover:bg-sky-700 text-xs px-3 py-1 rounded-md" data-vendor-id="${vendorId}">Recuperar Link</button>` : ''}
-                                    </div>
-                                    <p class="text-sm text-gray-300">Total de números vendidos: <span class="font-bold">${vendorData.count}</span></p>
-                                    <div class="mt-2 flex flex-wrap gap-2">
-                                        ${vendorData.numbers.map(num => `<span class="bg-blue-500 text-white font-bold px-2 py-1 text-xs rounded-full">${num}</span>`).join(' ')}
-                                    </div>
-                                </div>
-                            `;
-                        }
-                        reportOutputSection.innerHTML = reportHTML;
-                    }
-                } catch (error) {
-                    console.error("Erro ao gerar relatório:", error);
-                    reportOutputSection.innerHTML = `<p class="text-center text-red-500">Ocorreu um erro ao gerar o relatório: ${error.message}</p>`;
-                } finally {
-                    generateReportBtn.disabled = false;
-                    generateReportBtn.textContent = 'Gerar Relatório';
-                }
-            });
-        }
-        if(reportOutputSection) {
-            reportOutputSection.addEventListener('click', (e) => {
-                if (e.target && e.target.classList.contains('get-vendor-link-btn')) {
-                    const vendorId = e.target.dataset.vendorId;
-                    const raffleId = reportRaffleIdInput.value.trim();
-                    if (!vendorId || !raffleId) return;
-                    raffleIdForVendorInput.value = raffleId;
-                    vendorNameInput.value = vendorId;
-                    generateVendorLinkBtn.click();
-                    vendorLinkResultSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            });
-        }
-        
+        // --- INICIALIZAÇÃO ---
         listenToAllRaffles();
         loadRules(); 
     }
