@@ -179,34 +179,47 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderNumberGrid(maxNumbers) {
-        const isRaffleOver = !!raffleDetails.winner;
-        if (!numberGrid) return;
-        numberGrid.innerHTML = '';
-        if (maxNumbers === 10000) numberGrid.className = "grid grid-cols-10 sm:grid-cols-20 gap-1 md:gap-2 mb-8";
-        else if (maxNumbers === 1000) numberGrid.className = "grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-3 mb-8";
-        else numberGrid.className = "grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-3 mb-8";
-        for (let i = 0; i < maxNumbers; i++) {
-            const numberStr = formatNumberForRaffleType(i, raffleType);
-            const ownerData = soldNumbersData[numberStr];
-            const button = document.createElement('button');
-            button.textContent = numberStr;
-            button.dataset.number = numberStr;
-            button.className = "p-2 rounded-lg text-sm md:text-base font-bold transition-all duration-200 ease-in-out";
-            if (ownerData) {
-                button.disabled = true;
-                button.classList.add(ownerData.userId === userId ? 'bg-purple-600' : 'bg-gray-600', 'cursor-not-allowed', 'opacity-70');
-            } else {
-                if (isRaffleOver) {
-                    button.disabled = true;
-                    button.classList.add('bg-gray-700', 'cursor-not-allowed', 'opacity-50');
-                } else {
-                    button.classList.add(selectedNumbers.includes(numberStr) ? 'number-selected' : 'bg-blue-500', 'hover:bg-blue-400', 'number-available');
-                    button.addEventListener('click', handleNumberClick);
-                }
-            }
-            numberGrid.appendChild(button);
-        }
+    const isRaffleOver = !!raffleDetails.winner;
+    if (!numberGrid) return;
+    
+    numberGrid.innerHTML = '';
+
+    // ✅ LÓGICA DE RESPONSIVIDADE ATUALIZADA AQUI
+    if (maxNumbers === 10000) {
+        // Usa nossa nova classe CSS flexível para a grade de milhar
+        numberGrid.className = "grid-milhar mb-8";
+    } else {
+        // Mantém a lógica antiga para dezena e centena, que já funciona bem
+        numberGrid.className = "grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-3 mb-8";
     }
+
+    for (let i = 0; i < maxNumbers; i++) {
+        const numberStr = formatNumberForRaffleType(i, raffleType);
+        const ownerData = soldNumbersData[numberStr];
+        const button = document.createElement('button');
+        button.textContent = numberStr;
+        button.dataset.number = numberStr;
+        
+        // ✅ LÓGICA DE CLASSES DO BOTÃO ATUALIZADA
+        // Inclui text-xs e sm:text-sm para melhor responsividade da fonte nos números
+        let buttonClasses = "p-2 rounded-lg text-xs sm:text-sm md:text-base font-bold transition-all duration-200 ease-in-out";
+
+        if (ownerData) {
+            button.disabled = true;
+            buttonClasses += (ownerData.userId === userId ? ' bg-purple-600' : ' bg-gray-600') + ' cursor-not-allowed opacity-70';
+        } else {
+            if (isRaffleOver) {
+                button.disabled = true;
+                buttonClasses += ' bg-gray-700 cursor-not-allowed opacity-50';
+            } else {
+                buttonClasses += selectedNumbers.includes(numberStr) ? ' number-selected' : ' bg-blue-500 hover:bg-blue-400 number-available';
+                button.addEventListener('click', handleNumberClick);
+            }
+        }
+        button.className = buttonClasses;
+        numberGrid.appendChild(button);
+    }
+}
 
     function formatNumberForRaffleType(num, type) {
         if (type === 'centena') return num.toString().padStart(3, '0');
