@@ -25,11 +25,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const auth = getAuth(app);
     
     // --- ELEMENTOS DO DOM ---
+    
     const mainContainer = document.getElementById('main-container');
     const loadingSection = document.getElementById('loading-section');
     const userSection = document.getElementById('user-section');
     const appSection = document.getElementById('app-section');
     const raffleTitle = document.getElementById('raffle-title');
+    const cotasSection = document.getElementById('cotas-section');
     const numberGrid = document.getElementById('number-grid');
     const welcomeUserSpan = document.getElementById('welcome-user');
     const shoppingCartSection = document.getElementById('shopping-cart-section');
@@ -120,6 +122,47 @@ document.addEventListener('DOMContentLoaded', () => {
             userSection.classList.remove('hidden');
         }
     }
+    // Função para lidar com o clique nos botões de cota
+    const handleCotaClick = (event) => {
+        if (!event.target.classList.contains('cota-btn')) return;
+    
+        const quantity = parseInt(event.target.dataset.quantity, 10);
+    
+        // 1. Criamos um array com TODOS os números possíveis do sorteio
+        const allPossibleNumbers = Array.from({ length: totalNumbersInRaffle }, (_, i) => formatNumberForRaffleType(i, raffleType));
+    
+        // 2. Filtramos para ter um array apenas com os números AINDA DISPONÍVEIS
+        const availableNumbers = allPossibleNumbers.filter(num => !soldNumbersData[num]);
+    
+        // 3. Verificamos se há números suficientes para a cota
+        if (availableNumbers.length < quantity) {
+            return alert(`Não há ${quantity} números disponíveis para esta cota. Por favor, escolha uma cota menor ou selecione manualmente.`);
+        }
+    
+        // 4. Embaralhamos os números disponíveis para garantir a aleatoriedade
+        for (let i = availableNumbers.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [availableNumbers[i], availableNumbers[j]] = [availableNumbers[j], availableNumbers[i]];
+        }
+    
+        // 5. Pegamos a quantidade de números desejada
+        const randomSelection = availableNumbers.slice(0, quantity);
+    
+        // 6. Adicionamos os números selecionados ao carrinho
+        // Limpamos a seleção anterior para não somar
+        selectedNumbers = []; 
+        randomSelection.forEach(num => {
+            if (!selectedNumbers.includes(num)) {
+                selectedNumbers.push(num);
+            }
+        });
+    
+        // 7. Atualizamos a interface
+        alert(`${quantity} números aleatórios foram adicionados ao seu carrinho!`);
+        updateShoppingCart();
+        renderNumberGrid(totalNumbersInRaffle); // Re-renderiza a grade para mostrar os selecionados
+        shoppingCartSection.scrollIntoView({ behavior: 'smooth' }); // Rola a tela para o carrinho
+    };
 
     function setupFirestoreListeners() {
         const raffleDocRef = doc(db, "rifas", raffleId);
@@ -179,35 +222,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderNumberGrid(maxNumbers) {
-    const isRaffleOver = !!raffleDetails.winner;
-    if (!numberGrid) return;
-    
-    numberGrid.innerHTML = '';
-
-    // ✅ LÓGICA DE RESPONSIVIDADE ATUALIZADA AQUI
-    if (maxNumbers === 10000) {
-        // Usa nossa nova classe CSS flexível para a grade de milhar
-        numberGrid.className = "grid-milhar mb-8";
-    } else {
-        // Mantém a lógica antiga para dezena e centena, que já funciona bem
-        numberGrid.className = "grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-3 mb-8";
-    }
-
-    for (let i = 0; i < maxNumbers; i++) {
-        const numberStr = formatNumberForRaffleType(i, raffleType);
-        const ownerData = soldNumbersData[numberStr];
-        const button = document.createElement('button');
-        button.textContent = numberStr;
-        button.dataset.number = numberStr;
+        const isRaffleOver = !!raffleDetails.winner;
+        if (!numberGrid) return;
         
-        // ✅ LÓGICA DE CLASSES DO BOTÃO ATUALIZADA
-        // Inclui text-xs e sm:text-sm para melhor responsividade da fonte nos números
-        let buttonClasses = "p-2 rounded-lg text-xs sm:text-sm md:text-base font-bold transition-all duration-200 ease-in-out";
-
-        if (ownerData) {
-            button.disabled = true;
-            buttonClasses += (ownerData.userId === userId ? ' bg-purple-600' : ' bg-gray-600') + ' cursor-not-allowed opacity-70';
+        numberGrid.innerHTML = '';
+    
+        // Lógica de classe do grid (já corrigida antes)
+        if (maxNumbers === 10000) {
+            numberGrid.className = "grid-milhar mb-8";
         } else {
+            numberGrid.className = "grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-3 mb-8";
+        }
+    
+        // ✅ NOVA LÓGICA DE OTIMIZAÇÃO ✅
+        const allPossibleNumbers = Array.from({ length: maxNumbers }, (_, i) => formatNumberForRaffleType(i, raffleType));
+        
+        // Filtra para pegar apenas os primeiros 200 números disponíveis
+        const availableNumbersToDisplay = allPossibleNumbers.filter(num => !soldNumbersData[num]).slice(0, 200);
+    
+        if (availableNumbersToDisplay.length === 0) {
+            numberGrid.innerHTML = '<p class="col-span-full text-center text-gray-400">Parece que todos os números visíveis foram comprados. Tente uma cota aleatória!</p>';
+            return;
+        }
+    
+        // O loop agora itera sobre a lista otimizada, não sobre todos os 10.000
+        availableNumbersToDisplay.forEach(numberStr => {
+            const button = document.createElement('button');
+            button.textContent = numberStr;
+            button.dataset.number = numberStr;
+            
+            let buttonClasses = "p-2 rounded-lg text-xs sm:text-sm md:text-base font-bold transition-all duration-200 ease-in-out";
+            
+            // A lógica de estilo do botão continua a mesma
             if (isRaffleOver) {
                 button.disabled = true;
                 buttonClasses += ' bg-gray-700 cursor-not-allowed opacity-50';
@@ -215,12 +261,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 buttonClasses += selectedNumbers.includes(numberStr) ? ' number-selected' : ' bg-blue-500 hover:bg-blue-400 number-available';
                 button.addEventListener('click', handleNumberClick);
             }
-        }
-        button.className = buttonClasses;
-        numberGrid.appendChild(button);
+            
+            button.className = buttonClasses;
+            numberGrid.appendChild(button);
+        });
     }
-}
-
     function formatNumberForRaffleType(num, type) {
         if (type === 'centena') return num.toString().padStart(3, '0');
         if (type === 'milhar') return num.toString().padStart(4, '0');
@@ -587,6 +632,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showRulesBtn.addEventListener('click', showRules);
     closeRulesModalBtn.addEventListener('click', closeRules);
     getLuckyNumbersBtn.addEventListener('click', getLuckyNumbers);
+    cotasSection.addEventListener('click', handleCotaClick);
     setupAuthListener();
     setupShareButtons();
 });
