@@ -25,11 +25,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const auth = getAuth(app);
     
     // --- ELEMENTOS DO DOM ---
+    
     const mainContainer = document.getElementById('main-container');
     const loadingSection = document.getElementById('loading-section');
     const userSection = document.getElementById('user-section');
     const appSection = document.getElementById('app-section');
     const raffleTitle = document.getElementById('raffle-title');
+    const cotasSection = document.getElementById('cotas-section');
     const numberGrid = document.getElementById('number-grid');
     const welcomeUserSpan = document.getElementById('welcome-user');
     const shoppingCartSection = document.getElementById('shopping-cart-section');
